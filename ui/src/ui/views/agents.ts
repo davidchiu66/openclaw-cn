@@ -15,7 +15,7 @@ import {
   expandToolGroups,
   normalizeToolName,
   resolveToolProfilePolicy,
-} from "../../../../src/agents/tool-policy.js";
+} from "../shared/tool-policy";
 import { formatAgo } from "../format";
 import {
   formatCronPayload,
