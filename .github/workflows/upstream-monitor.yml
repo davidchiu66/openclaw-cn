@@ -1,6 +1,6 @@
 name: Upstream Release Monitor
 # 每日自动检测上游 openclaw/openclaw 新 Release
-# 检测 → AI 分析 → 创建 Issue → 自动 cherry-pick → 创建 PR
+# 检测 → AI 分析 → 创建 Issue
 
 on:
   schedule:
@@ -13,15 +13,13 @@ on:
         type: string
         default: ''
       dry_run:
-        description: '测试模式: 只创建 Issue，不提交/不触发 cherry-pick'
+        description: '测试模式: 只创建 Issue，不更新基准版本'
         type: boolean
         default: false
 
 permissions:
   contents: write
   issues: write
-  pull-requests: write
-  actions: write
 
 env:
   UPSTREAM_REPO: openclaw/openclaw
@@ -89,7 +87,7 @@ jobs:
           fi
 
   # ================================================================
-  # Job 2: 提取 commit → AI 分析 → 创建 Issue → 上传 artifact
+  # Job 2: 提取 commit → AI 分析 → 创建 Issue
   # ================================================================
   extract-and-notify:
     needs: check-upstream
@@ -97,7 +95,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       issue_number: ${{ steps.issue.outputs.number }}
-      merge_count: ${{ steps.stats.outputs.merge_count }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -372,13 +369,6 @@ jobs:
           echo "ai_overrides=$OVERRIDE_COUNT" >> "$GITHUB_OUTPUT"
           echo "✅ AI 分析完成，修正了 $OVERRIDE_COUNT 项分类"
 
-      - name: Upload refined commits
-        uses: actions/upload-artifact@v4
-        with:
-          name: refined-commits
-          path: /tmp/commits.json
-          retention-days: 7
-
       - name: Calculate statistics
         id: stats
         run: |
@@ -444,15 +434,15 @@ jobs:
             echo ""
             echo "| 类别 | 数量 | 处理方式 |"
             echo "|------|------|----------|"
-            echo "| 🔴 P0 安全修复 | **$P0** | 自动 cherry-pick |"
-            echo "| 🟠 P1 关键修复 | **$P1** | 自动 cherry-pick |"
+            echo "| 🔴 P0 安全修复 | **$P0** | 建议优先合入 |"
+            echo "| 🟠 P1 关键修复 | **$P1** | 建议合入 |"
             echo "| 👁 需人工审查 | **$REVIEW** | 手动处理 |"
             echo "| 🔵 可选 | **$OPTIONAL** | 按需 |"
             echo "| ⚪ 已跳过 | **$SKIP** | 不使用的渠道/CI/docs |"
             echo ""
             echo "---"
             echo ""
-            echo "### ✅ 自动合并清单 (P0+P1)"
+            echo "### ✅ 建议合并清单 (P0+P1)"
             echo ""
             if [ "$MERGE" -gt 0 ]; then
               echo "| 状态 | 优先级 | Commit | 描述 | 类别 | 风险 |"
@@ -477,8 +467,6 @@ jobs:
               echo "</details>"
               echo ""
             fi
-            echo "> 🤖 自动 cherry-pick PR 创建后将在下方评论更新结果"
-            echo ""
             if [ "$REVIEW" -gt 0 ]; then
               echo "### 👁 需人工审查"
               echo ""
@@ -520,19 +508,14 @@ jobs:
             echo ""
             echo "---"
             echo ""
-            echo "### 🔧 手动补充操作"
+            echo "### 🔧 手动操作"
             echo ""
             echo '```bash'
-            echo "# 审查项"
-            echo "./scripts/upstream-cherry-pick.sh --priority P2 --dry-run"
-            echo "# 可选项"
-            echo "./scripts/upstream-cherry-pick.sh --priority P0,P1,P2,P3 --dry-run"
+            echo "# 查看待合并 commit"
+            echo "git log --oneline <prev_tag>..<latest_tag>"
+            echo "# 手动 cherry-pick"
+            echo "git cherry-pick <sha>"
             echo '```'
-            echo ""
-            echo "或: **Actions → Upstream Cherry-Pick** → 选择优先级"
-            echo ""
-            echo "### 🛡 Cherry-pick 保护机制"
-            echo "自动恢复本地文件: \`docs/\` \`extensions/feishu/\` \`package.json\` \`.github/workflows/\` \`CHANGELOG.md\` \`README.md\`"
           } > /tmp/issue-body.md
 
           gh label create upstream --description "上游变更追踪" --color "0075ca" --force -R "$GITHUB_REPOSITORY" 2>&1 || true
@@ -569,19 +552,3 @@ jobs:
             git commit -m "chore: track upstream $LATEST"
             git push
           fi
-
-  # ================================================================
-  # Job 3: 自动 cherry-pick P0+P1 并创建 PR
-  # ================================================================
-  auto-cherry-pick:
-    needs: [check-upstream, extract-and-notify]
-    if: ${{ !inputs.dry_run && fromJSON(needs.extract-and-notify.outputs.merge_count) > 0 }}
-    uses: ./.github/workflows/upstream-cherry-pick.yml
-    with:
-      from_tag: ${{ needs.check-upstream.outputs.prev_tag }}
-      to_tag: ${{ needs.check-upstream.outputs.latest_tag }}
-      priority: 'P0,P1'
-      dry_run: false
-      skip_build: true
-      issue_number: ${{ needs.extract-and-notify.outputs.issue_number }}
-    secrets: inherit
