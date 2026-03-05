@@ -13,6 +13,7 @@ Docs: https://clawd.org.cn/
 - **DM 多 Agent 内容路由**：新增 `agents.list[].dmChat.mentionPatterns` 配置项，支持在私信（DM）场景下通过消息关键词/正则将消息路由到指定 Agent；修复 `DmConfig` 类型缺少 `mentionPatterns` 字段导致配置无效的问题（#460）
 - **飞书多机器人群 @ 检测修复**：修复一群多 Agent 时 `@机器人` 路由错误的问题。根本原因：`/bot/v3/info` 返回的是机器人的「应用身份」`open_id`，而群消息 `mentions` 中携带的是「用户身份」`open_id`，两者不同导致 `@` 检测失败。修复方案：新增以机器人名称（`app_name`/`botName`）为兜底的匹配逻辑，当 `open_id` 不匹配时使用名称二次确认（#463）
 - **Cron `at` 类型任务 schema 校验修复**：修复使用 `{ kind: "at", atMs: <毫秒时间戳> }` 创建单次定时任务时触发 schema 校验失败（错误信息中错误地提示 `everyMs`/`expr` 必填）的问题。根本原因一：`coerceSchedule()` 在将 `at` 字符串转为 `atMs` 数字时会**删除** `at` 字段，导致归一化后任务的 gateway schema 校验失败；根本原因二：gateway `CronScheduleSchema` 仅接受字符串 `at`，不接受数字 `atMs`。修复方案：`coerceSchedule()` 不再删除 `at` 字段，并支持纯数字 `atMs` 输入时自动合成 ISO UTC 字符串；`CronScheduleSchema` 中 `at` 变体新增可选 `atMs` 整数字段（#465）
+- **内置 Hook metadata key 修复**：修复 session-memory、command-logger、boot-md 三个内置 Hook 因 `HOOK.md` 使用旧版 `"clawdbot"` metadata key 而导致事件无法注册、Hook 静默失效的问题。已将三个内置 Hook 改为正确的 `"openclaw"` key；同时在 `frontmatter.ts` 和 `install.ts` 加入向后兼容 fallback，确保用户自写的旧格式 Hook 继续可用（#471）
 
 ## 0.1.7
 
