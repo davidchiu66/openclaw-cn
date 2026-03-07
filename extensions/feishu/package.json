@@ -76,7 +76,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@openclaw-cn/feishu",
+      "npmSpec": "@openclaw-cn/feishu@^0.1.0",
       "defaultChoice": "npm"
     }
   }
