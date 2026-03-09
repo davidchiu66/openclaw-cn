@@ -873,6 +873,7 @@
                   "channels/irc",
                   "channels/slack",
                   "channels/feishu",
+                  "channels/dingtalk-connector",
                   "channels/googlechat",
                   "channels/mattermost",
                   "channels/signal",
