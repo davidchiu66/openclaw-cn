@@ -117,6 +117,7 @@ export type PluginPackageChannel = {
 
 export type PluginPackageInstall = {
   npmSpec?: string;
+  officialSpec?: string;
   localPath?: string;
   defaultChoice?: "npm" | "local";
 };

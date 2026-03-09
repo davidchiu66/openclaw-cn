@@ -77,6 +77,7 @@
     },
     "install": {
       "npmSpec": "@openclaw-cn/feishu@^0.1.0",
+      "officialSpec": "@larksuiteoapi/feishu-openclaw-plugin",
       "defaultChoice": "npm"
     }
   }

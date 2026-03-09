@@ -20,8 +20,9 @@ const PROVIDER = "feishu" as const;
 
 export async function readFeishuAllowFromStore(
   env: NodeJS.ProcessEnv = process.env,
+  accountId?: string,
 ): Promise<string[]> {
-  return readChannelAllowFromStore(PROVIDER, env);
+  return readChannelAllowFromStore(PROVIDER, env, accountId);
 }
 
 export async function addFeishuAllowFromStoreEntry(params: {
@@ -55,6 +56,9 @@ export async function upsertFeishuPairingRequest(params: {
   name?: string;
   env?: NodeJS.ProcessEnv;
 }): Promise<{ code: string; created: boolean }> {
+  // Do NOT pass accountId here — this ensures pairing requests stay at channel-level,
+  // so `pairing approve` writes to feishu-allowFrom.json (not feishu-default-allowFrom.json).
+  // Both our core reader and the official plugin can then find the approved entry.
   return upsertChannelPairingRequest({
     channel: PROVIDER,
     id: params.openId,

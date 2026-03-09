@@ -71,9 +71,9 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
   },
   feishu: {
     id: "feishu",
-    label: "Feishu",
-    selectionLabel: "Feishu (Lark Open Platform)",
-    detailLabel: "Feishu Bot",
+    label: "飞书",
+    selectionLabel: "飞书 (Lark 开放平台)",
+    detailLabel: "飞书机器人",
     docsPath: "/channels/feishu",
     docsLabel: "feishu",
     blurb: "飞书/Lark 机器人集成 (WebSocket)。",

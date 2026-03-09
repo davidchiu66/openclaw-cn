@@ -12,7 +12,7 @@ import { resolveBundledPluginsDir } from "../../plugins/bundled-dir.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
 
-type InstallChoice = "npm" | "local" | "skip";
+type InstallChoice = "npm" | "official" | "local" | "skip";
 
 type InstallResult = {
   cfg: ClawdbotConfig;
@@ -93,13 +93,24 @@ async function promptInstallChoice(params: {
         },
       ]
     : [];
+  const officialOptions: Array<{ value: InstallChoice; label: string; hint?: string }> = entry
+    .install.officialSpec
+    ? [{ value: "official", label: "飞书官方插件", hint: entry.install.officialSpec }]
+    : [];
   const options: Array<{ value: InstallChoice; label: string; hint?: string }> = [
-    { value: "npm", label: `从 npm 下载 (${entry.install.npmSpec})` },
+    ...officialOptions,
+    { value: "npm", label: `中文社区版 (${entry.install.npmSpec})` },
     ...localOptions,
     { value: "skip", label: "暂时跳过" },
   ];
   const initialValue: InstallChoice =
-    defaultChoice === "local" && !localPath ? "npm" : defaultChoice;
+    defaultChoice === "local" && !localPath
+      ? officialOptions.length > 0
+        ? "official"
+        : "npm"
+      : defaultChoice === "npm" && officialOptions.length > 0
+        ? "official"
+        : defaultChoice;
   return await prompter.select<InstallChoice>({
     message: `安装 ${entry.meta.label} 插件?`,
     options,
@@ -150,6 +161,31 @@ export async function ensureOnboardingPluginInstalled(params: {
   });
 
   if (choice === "skip") {
+    return { cfg: next, installed: false };
+  }
+
+  if (choice === "official" && entry.install.officialSpec) {
+    const result = await installPluginFromNpmSpec({
+      spec: entry.install.officialSpec,
+      mode: "update",
+      logger: {
+        info: (msg) => runtime.log?.(msg),
+        warn: (msg) => runtime.log?.(msg),
+      },
+    });
+    if (result.ok) {
+      next = enablePluginInConfig(next, result.pluginId).config;
+      next = recordPluginInstall(next, {
+        pluginId: result.pluginId,
+        source: "npm",
+        spec: entry.install.officialSpec,
+        installPath: result.targetDir,
+        version: result.version,
+      });
+      return { cfg: next, installed: true };
+    }
+    await prompter.note(`安装官方插件失败: ${result.error}`, "插件安装");
+    runtime.error?.(`官方插件安装失败: ${result.error}`);
     return { cfg: next, installed: false };
   }
 

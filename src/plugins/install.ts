@@ -226,11 +226,14 @@ async function installPluginFromPackageDir(params: {
   const hasDeps = Object.keys(deps).length > 0;
   if (hasDeps) {
     logger.info?.("Installing plugin dependencies…");
-    const npmRes = await runCommandWithTimeout(["npm", "install", "--omit=dev", "--silent"], {
+    const npmRes = await runCommandWithTimeout(["npm", "install", "--omit=dev", "--quiet"], {
       timeoutMs: Math.max(timeoutMs, 300_000),
       cwd: targetDir,
     });
-    if (npmRes.code !== 0) {
+    // npm may exit non-zero due to funding/audit notices even on success;
+    // treat it as a real failure only if node_modules was not created.
+    const nodeModulesCreated = await fileExists(path.join(targetDir, "node_modules"));
+    if (npmRes.code !== 0 && !nodeModulesCreated) {
       if (backupDir) {
         await fs.rm(targetDir, { recursive: true, force: true }).catch(() => undefined);
         await fs.rename(backupDir, targetDir).catch(() => undefined);
@@ -443,6 +446,75 @@ export async function installPluginFromNpmSpec(params: {
     mode,
     dryRun,
     expectedPluginId,
+  });
+}
+
+export async function installPluginFromNpxScript(params: {
+  spec: string;
+  extensionsDir?: string;
+  timeoutMs?: number;
+  logger?: PluginInstallLogger;
+  expectedPluginId?: string;
+}): Promise<InstallPluginResult> {
+  const logger = params.logger ?? defaultLogger;
+  const timeoutMs = params.timeoutMs ?? 300_000;
+  const spec = params.spec.trim();
+  if (!spec) return { ok: false, error: "missing npx spec" };
+
+  // The spec is a URL to a self-installer CLI tgz (e.g. Feishu official installer).
+  // Rather than running the installer (which requires `openclaw` in PATH), we inspect
+  // the installer to extract the actual npm package name and install it directly.
+  logger.info?.(`Fetching installer metadata from ${spec}…`);
+
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-npx-"));
+  const installerPath = path.join(tmpDir, "installer.tgz");
+  const extractDir = path.join(tmpDir, "installer");
+
+  // Download the installer tgz
+  const dlRes = await runCommandWithTimeout(["curl", "-fsSL", "-o", installerPath, spec], {
+    timeoutMs,
+    cwd: tmpDir,
+  });
+  if (dlRes.code !== 0) {
+    return { ok: false, error: `download failed: ${dlRes.stderr.trim() || dlRes.stdout.trim()}` };
+  }
+
+  // Extract the installer and read its package.json to find the actual plugin package name
+  await fs.mkdir(extractDir, { recursive: true });
+  const tarRes = await runCommandWithTimeout(["tar", "-xzf", installerPath, "-C", extractDir], {
+    timeoutMs,
+    cwd: tmpDir,
+  });
+  if (tarRes.code !== 0) {
+    return { ok: false, error: `extract failed: ${tarRes.stderr.trim()}` };
+  }
+
+  // The installer's install command embeds the plugin package name — find it from install.js
+  let pluginNpmSpec = "";
+  try {
+    const installJs = await fs.readFile(
+      path.join(extractDir, "package", "dist", "commands", "install.js"),
+      "utf-8",
+    );
+    // Look for: const PACKAGE_NAME = '@scope/package-name';
+    const match = installJs.match(/const\s+PACKAGE_NAME\s*=\s*['"]([^'"]+)['"]/);
+    if (match?.[1]) pluginNpmSpec = match[1].trim();
+  } catch {
+    // ignore — fall through to error below
+  }
+
+  if (!pluginNpmSpec) {
+    return { ok: false, error: "could not determine plugin package name from official installer" };
+  }
+
+  logger.info?.(`Installing official plugin ${pluginNpmSpec}…`);
+  return await installPluginFromNpmSpec({
+    spec: pluginNpmSpec,
+    extensionsDir: params.extensionsDir,
+    timeoutMs,
+    logger,
+    mode: "update",
+    expectedPluginId: params.expectedPluginId,
   });
 }
 

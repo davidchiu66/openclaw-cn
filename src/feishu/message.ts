@@ -120,8 +120,19 @@ export async function processFeishuMessage(
     return;
   }
 
-  // Load allowlist from store
-  const storeAllowFrom = await readFeishuAllowFromStore().catch(() => []);
+  // Load allowlist from store — merge channel-level, "default"-scoped and accountId-scoped
+  // stores. pairing approve writes to meta.accountId-scoped file ("default" by default),
+  // but processFeishuMessage uses appId as accountId, so we must read all three.
+  const [channelAllowFrom, defaultAllowFrom, accountAllowFrom] = await Promise.all([
+    readFeishuAllowFromStore().catch(() => [] as string[]),
+    readFeishuAllowFromStore(process.env, "default").catch(() => [] as string[]),
+    accountId !== "default"
+      ? readFeishuAllowFromStore(process.env, accountId).catch(() => [] as string[])
+      : Promise.resolve([] as string[]),
+  ]);
+  const storeAllowFrom = Array.from(
+    new Set([...channelAllowFrom, ...defaultAllowFrom, ...accountAllowFrom]),
+  );
 
   // ===== Access Control =====
 

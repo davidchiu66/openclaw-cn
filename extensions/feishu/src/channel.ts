@@ -1,9 +1,12 @@
-import type { ChannelMeta, ChannelPlugin, OpenClawConfig as ClawdbotConfig } from "openclaw/plugin-sdk";
+import type {
+  ChannelMeta,
+  ChannelPlugin,
+  OpenClawConfig as ClawdbotConfig,
+} from "openclaw/plugin-sdk";
 import { DEFAULT_ACCOUNT_ID, PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk";
 import type { ResolvedFeishuAccount, FeishuConfig } from "./types.js";
 import {
   resolveFeishuAccount,
-  resolveFeishuCredentials,
   listFeishuAccountIds,
   resolveDefaultFeishuAccountId,
 } from "./accounts.js";
@@ -19,12 +22,12 @@ import { feishuOutbound } from "./outbound.js";
 import { resolveFeishuGroupToolPolicy } from "./policy.js";
 import { probeFeishu } from "./probe.js";
 import { sendMessageFeishu } from "./send.js";
-import { normalizeFeishuTarget, looksLikeFeishuId, formatFeishuTarget } from "./targets.js";
+import { normalizeFeishuTarget, looksLikeFeishuId } from "./targets.js";
 
 const meta: ChannelMeta = {
   id: "feishu",
-  label: "Feishu",
-  selectionLabel: "Feishu/Lark (飞书)",
+  label: "飞书",
+  selectionLabel: "飞书 (Lark 开放平台)",
   docsPath: "/channels/feishu",
   docsLabel: "feishu",
   blurb: "飞书/Lark enterprise messaging.",
@@ -126,7 +129,6 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
     resolveAccount: (cfg, accountId) => resolveFeishuAccount({ cfg, accountId }),
     defaultAccountId: (cfg) => resolveDefaultFeishuAccountId(cfg),
     setAccountEnabled: ({ cfg, accountId, enabled }) => {
-      const account = resolveFeishuAccount({ cfg, accountId });
       const isDefault = accountId === DEFAULT_ACCOUNT_ID;
 
       if (isDefault) {

@@ -28,6 +28,7 @@ export type ChannelPluginCatalogEntry = {
   meta: ChannelMeta;
   install: {
     npmSpec: string;
+    officialSpec?: string;
     localPath?: string;
     defaultChoice?: "npm" | "local";
   };
@@ -176,8 +177,10 @@ function resolveInstallInfo(params: {
     localPath = path.relative(params.workspaceDir, params.packageDir) || undefined;
   }
   const defaultChoice = params.manifest.install?.defaultChoice ?? (localPath ? "local" : "npm");
+  const officialSpec = params.manifest.install?.officialSpec?.trim() || undefined;
   return {
     npmSpec,
+    ...(officialSpec ? { officialSpec } : {}),
     ...(localPath ? { localPath } : {}),
     ...(defaultChoice ? { defaultChoice } : {}),
   };
@@ -246,6 +249,13 @@ export function listChannelPluginCatalogEntries(
   const discovery = discoverClawdbotPlugins({ workspaceDir: options.workspaceDir });
   const resolved = new Map<string, { entry: ChannelPluginCatalogEntry; priority: number }>();
 
+  // Track officialSpec from any origin so it can be merged into the winning entry
+  const officialSpecById = new Map<string, string>();
+  for (const candidate of discovery.candidates) {
+    const spec = candidate.packageOpenclaw?.install?.officialSpec?.trim();
+    if (spec) officialSpecById.set(candidate.packageOpenclaw?.channel?.id?.trim() ?? "", spec);
+  }
+
   for (const candidate of discovery.candidates) {
     const entry = buildCatalogEntry(candidate);
     if (!entry) continue;
@@ -253,6 +263,27 @@ export function listChannelPluginCatalogEntries(
     const existing = resolved.get(entry.id);
     if (!existing || priority < existing.priority) {
       resolved.set(entry.id, { entry, priority });
+    }
+  }
+
+  // Merge officialSpec from any origin into the winning entry if it is missing
+  for (const [id, { entry }] of resolved) {
+    if (!entry.install.officialSpec) {
+      const spec = officialSpecById.get(id);
+      if (spec) entry.install.officialSpec = spec;
+    }
+  }
+
+  // Deduplicate: if an entry's npmSpec matches another entry's officialSpec,
+  // it is the official implementation of that channel — drop the duplicate.
+  const officialSpecValues = new Set(
+    Array.from(resolved.values())
+      .map(({ entry }) => entry.install.officialSpec?.trim())
+      .filter(Boolean) as string[],
+  );
+  for (const [id, { entry }] of resolved) {
+    if (officialSpecValues.has(entry.install.npmSpec.trim())) {
+      resolved.delete(id);
     }
   }
 

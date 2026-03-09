@@ -382,3 +382,94 @@ export { monitorFeishuProvider } from "../feishu/monitor.js";
 
 // Media utilities
 export { loadWebMedia, type WebMediaResult } from "../web/media.js";
+
+// Command authorization helpers used by external channel plugins (e.g. official Feishu plugin)
+export { resolveCommandAuthorizedFromAuthorizers } from "../channels/command-gating.js";
+export { shouldComputeCommandAuthorized } from "../auto-reply/command-detection.js";
+
+/**
+ * Check whether a sender ID is in a normalized allowFrom list.
+ * Strips optional "feishu:" / "user:" / "open_id:" prefixes before comparison.
+ */
+export function isNormalizedSenderAllowed(params: {
+  senderId: string;
+  allowFrom: string[];
+}): boolean {
+  const { senderId, allowFrom } = params;
+  if (!senderId || !allowFrom.length) return false;
+  const normalized = senderId.trim().toLowerCase();
+  return allowFrom.some((entry) => {
+    const e = String(entry)
+      .trim()
+      .toLowerCase()
+      .replace(/^(feishu|user|open_id):/i, "");
+    return e === "*" || e === normalized;
+  });
+}
+
+/**
+ * Resolve whether a sender is authorized to run commands.
+ * Used by external channel plugins that need unified DM/group command gating.
+ */
+export async function resolveSenderCommandAuthorization(params: {
+  rawBody: string;
+  cfg: import("../config/config.js").ClawdbotConfig;
+  isGroup: boolean;
+  dmPolicy: string;
+  configuredAllowFrom: string[];
+  configuredGroupAllowFrom?: string[];
+  senderId: string;
+  isSenderAllowed: (senderId: string, allowFrom: string[]) => boolean;
+  readAllowFromStore: () => Promise<string[]>;
+  shouldComputeCommandAuthorized: (
+    text?: string,
+    cfg?: import("../config/config.js").ClawdbotConfig,
+  ) => boolean;
+  resolveCommandAuthorizedFromAuthorizers: (params: {
+    useAccessGroups: boolean;
+    authorizers: Array<{ configured: boolean; allowed: boolean }>;
+  }) => boolean;
+}): Promise<{ commandAuthorized: boolean }> {
+  const {
+    rawBody,
+    cfg,
+    isGroup,
+    dmPolicy,
+    configuredAllowFrom,
+    configuredGroupAllowFrom,
+    senderId,
+    isSenderAllowed: checkSender,
+    readAllowFromStore,
+    shouldComputeCommandAuthorized: shouldCompute,
+    resolveCommandAuthorizedFromAuthorizers: resolveAuthorized,
+  } = params;
+
+  if (!shouldCompute(rawBody, cfg)) {
+    return { commandAuthorized: true };
+  }
+
+  const storeAllowFrom = await readAllowFromStore().catch(() => [] as string[]);
+
+  if (isGroup) {
+    const groupAllowFrom = configuredGroupAllowFrom ?? configuredAllowFrom;
+    const hasWildcard = groupAllowFrom.some((e) => String(e).trim() === "*");
+    const configured = groupAllowFrom.length > 0;
+    const allowed = hasWildcard || checkSender(senderId, [...groupAllowFrom, ...storeAllowFrom]);
+    const commandAuthorized = resolveAuthorized({
+      useAccessGroups: configured,
+      authorizers: [{ configured, allowed }],
+    });
+    return { commandAuthorized };
+  }
+
+  // DM
+  if (dmPolicy === "open") return { commandAuthorized: true };
+  const dmAllowFrom = [...configuredAllowFrom, ...storeAllowFrom];
+  const configured = dmAllowFrom.length > 0;
+  const allowed = checkSender(senderId, dmAllowFrom);
+  const commandAuthorized = resolveAuthorized({
+    useAccessGroups: configured,
+    authorizers: [{ configured, allowed }],
+  });
+  return { commandAuthorized };
+}

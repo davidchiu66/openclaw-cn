@@ -17,6 +17,15 @@ Docs: https://clawd.org.cn/
 - **持久化命令队列**：新增基于 SQLite 的持久化队列后端，支持进程重启后自动静默恢复未完成任务，避免向用户发送「服务已重启，请重新发送」的扰人通知。通过 `queue.mode: "persistent"` 启用，默认保持 `memory` 模式（向后兼容）；`better-sqlite3` 作为可选依赖，未安装时自动降级并给出友好提示。同步修复了队列 drop 策略（`drop: "old"/"summarize"`）在持久化模式下被丢弃的消息重启后「复活」的 bug（#323，感谢 @dragonforce2010）
 - **阿里云百炼 Coding Plan 模型选择优化**：配置向导中的阿里云百炼（Coding Plan）由"使用默认模型 Yes/No"改为完整的模型选择列表，支持官方文档中的全部模型：`qwen3.5-plus`、`qwen3-max-2026-01-23`、`qwen3-coder-next`、`qwen3-coder-plus`（千问系列）、`glm-5`、`glm-4.7`（智谱）、`kimi-k2.5`（Kimi）、`MiniMax-M2.5`（MiniMax），并保留手动输入自定义模型 ID 的选项（#469）
 
+### 飞书官方插件支持
+
+- **飞书官方插件（`@larksuiteoapi/feishu-openclaw-plugin`）集成**：配置向导新增「飞书官方插件」安装选项，默认选中并排在首位；安装后自动以兼容官方插件的扁平格式（`channels.feishu.appId` / `appSecret`）写入配置，同时保留社区插件所需的嵌套格式兼容
+- **配对（Pairing）系统修复**：修复 `pairing approve` 后飞书仍提示「访问未配置」的问题。根本原因：消息处理时仅读取 channel-level `feishu-allowFrom.json`，而 approve 写入的是 account-scoped `feishu-default-allowFrom.json`。修复方案：同时读取 channel-level、`default`-scoped 和 accountId-scoped 三个 allowFrom 文件并合并
+- **plugin-sdk 新增命令授权工具函数**：为官方飞书插件导出 `resolveSenderCommandAuthorization`、`isNormalizedSenderAllowed`，修复官方插件消息处理时 `is not a function` 崩溃
+- **插件加载容错**：修复源码目录型（无 `dist/index.js`）捆绑插件加载报错的问题，改为静默跳过
+- **插件去重优化**：修复同一插件同时存在捆绑版和 npm 安装版时产生 "duplicate plugin id" 警告的问题
+- **Control UI CSP 修复**：允许从 `fonts.googleapis.com` / `fonts.gstatic.com` 加载字体，解决 Web UI 字体被 Content Security Policy 拦截的问题
+
 ### bug修复
 
 - **DM 多 Agent 内容路由**：新增 `agents.list[].dmChat.mentionPatterns` 配置项，支持在私信（DM）场景下通过消息关键词/正则将消息路由到指定 Agent；修复 `DmConfig` 类型缺少 `mentionPatterns` 字段导致配置无效的问题（#460）

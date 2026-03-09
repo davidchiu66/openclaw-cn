@@ -126,12 +126,13 @@ function updateFeishuConfig(
   next.channels = { ...next.channels, feishu };
 
   if (accountId === DEFAULT_ACCOUNT_ID) {
-    // If we are using the simplified config structure (which we didn't strictly define for Feishu,
-    // but let's assume we stick to `accounts` map for consistency with my previous types.feishu.ts)
-    // Wait, in types.feishu.ts I defined:
-    // export type FeishuConfig = { accounts?: Record<string, FeishuAccountConfig>; };
-    // So there is no top-level appId/appSecret in FeishuConfig, only inside accounts.
-
+    // Write top-level fields for compatibility with the official Feishu plugin
+    // which reads appId/appSecret directly from channels.feishu (flat structure).
+    if (updates.appId !== undefined) feishu.appId = updates.appId;
+    if (updates.appSecret !== undefined) feishu.appSecret = updates.appSecret;
+    if (updates.domain !== undefined) feishu.domain = updates.domain;
+    if (updates.enabled !== undefined) feishu.enabled = updates.enabled;
+    // Also write into accounts.default for our community plugin's nested reader.
     if (!feishu.accounts) feishu.accounts = {};
     const acc = feishu.accounts[accountId] || { appId: "", appSecret: "" };
     feishu.accounts[accountId] = {

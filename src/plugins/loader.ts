@@ -293,6 +293,16 @@ export function loadClawdbotPlugins(options: PluginLoadOptions = {}): PluginRegi
       continue;
     }
 
+    // Skip source-only bundled plugins that haven't been built (no dist/).
+    // These exist only as catalog entries for install prompts.
+    if (!fs.existsSync(candidate.source)) {
+      record.status = "disabled";
+      record.error = "source file not found (install plugin to enable)";
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
+      continue;
+    }
+
     let mod: ClawdbotPluginModule | null = null;
     try {
       mod = jiti(candidate.source) as ClawdbotPluginModule;
