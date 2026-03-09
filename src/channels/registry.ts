@@ -10,6 +10,7 @@ export const CHAT_CHANNEL_ORDER = [
   "discord",
   "googlechat",
   "feishu",
+  "dingtalk-connector",
   "slack",
   "signal",
   "imessage",
@@ -79,6 +80,16 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
     blurb: "飞书/Lark 机器人集成 (WebSocket)。",
     systemImage: "message",
   },
+  "dingtalk-connector": {
+    id: "dingtalk-connector",
+    label: "钉钉",
+    selectionLabel: "钉钉 (官方连接器)",
+    detailLabel: "钉钉机器人",
+    docsPath: "/channels/dingtalk-connector",
+    docsLabel: "dingtalk-connector",
+    blurb: "钉钉机器人集成，通过官方 dingtalk-connector 接入。",
+    systemImage: "message",
+  },
   slack: {
     id: "slack",
     label: "Slack",
@@ -115,6 +126,8 @@ export const CHAT_CHANNEL_ALIASES: Record<string, ChatChannelId> = {
   imsg: "imessage",
   "google-chat": "googlechat",
   gchat: "googlechat",
+  dingtalk: "dingtalk-connector",
+  dingding: "dingtalk-connector",
 };
 
 const normalizeChannelKey = (raw?: string | null): string | undefined => {

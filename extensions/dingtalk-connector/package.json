@@ -1,0 +1,78 @@
+{
+  "name": "@openclaw-cn/dingtalk-connector",
+  "version": "0.1.0",
+  "description": "钉钉 OpenClaw 渠道插件，通过官方 dingtalk-real-ai/dingtalk-connector 接入钉钉机器人。",
+  "keywords": [
+    "dingtalk",
+    "openclaw",
+    "plugin"
+  ],
+  "homepage": "https://github.com/openclaw/openclaw-cn/tree/main/extensions/dingtalk-connector",
+  "bugs": {
+    "url": "https://github.com/openclaw/openclaw-cn/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw/openclaw-cn.git",
+    "directory": "extensions/dingtalk-connector"
+  },
+  "files": [
+    "openclaw.plugin.json",
+    "package.json",
+    "README.md",
+    "dist/"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "openclaw": "*",
+    "openclaw-cn": "*"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    },
+    "openclaw-cn": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "channel": {
+      "id": "dingtalk-connector",
+      "label": "钉钉",
+      "selectionLabel": "钉钉 (官方连接器)",
+      "docsPath": "/channels/dingtalk-connector",
+      "docsLabel": "dingtalk-connector",
+      "blurb": "钉钉机器人集成，通过官方 dingtalk-connector 接入。",
+      "aliases": [
+        "dingtalk",
+        "dingding"
+      ],
+      "order": 40
+    },
+    "install": {
+      "npmSpec": "@openclaw-cn/dingtalk-connector@^0.1.0",
+      "officialSpec": "dingtalk-real-ai/dingtalk-connector",
+      "defaultChoice": "npm"
+    }
+  }
+}

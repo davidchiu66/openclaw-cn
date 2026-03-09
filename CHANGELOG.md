@@ -26,6 +26,11 @@ Docs: https://clawd.org.cn/
 - **插件去重优化**：修复同一插件同时存在捆绑版和 npm 安装版时产生 "duplicate plugin id" 警告的问题
 - **Control UI CSP 修复**：允许从 `fonts.googleapis.com` / `fonts.gstatic.com` 加载字体，解决 Web UI 字体被 Content Security Policy 拦截的问题
 - **`readChannelAllowFromStore` 合并读取修复**：修复 `pairing approve` 写入 account-scoped `feishu-default-allowFrom.json` 而官方插件读取 channel-level `feishu-allowFrom.json` 导致批准后仍提示未配对的问题。现在读取时自动合并两个文件，保证官方插件和社区插件都能识别已批准的发送者
+- **`readAllowFromStore` 签名修复**：修复 gateway runtime 将 `readAllowFromStore` 直接赋值为 `readChannelAllowFromStore`（位置参数），而官方插件以对象形式调用 `readAllowFromStore({ channel, accountId })`，导致 `accountId` 被误当作 `channel` 参数、永远读取错误文件的问题。现在 runtime 注入的是正确包装的对象参数签名
+
+### 钉钉官方连接器渠道支持
+
+- **新增钉钉渠道（`dingtalk-real-ai/dingtalk-connector`）**：新增钉钉官方连接器渠道插件 `@openclaw-cn/dingtalk-connector`，通过官方 `dingtalk-connector` 接入钉钉机器人。配置向导支持交互式设置必填项：`clientId`（钉钉应用 Client ID）、`clientSecret`（Client Secret）、`gatewayToken`（Gateway 认证 Token）；配置完成后自动在 `channels.dingtalk-connector` 写入凭证，并确保 `gateway.http.endpoints.chatCompletions.enabled = true` 满足官方连接器要求
 
 ### bug修复
 

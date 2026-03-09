@@ -282,6 +282,17 @@ const DOCKS: Record<ChatChannelId, ChannelDock> = {
       formatAllowFrom: ({ allowFrom }) => allowFrom.map(String),
     },
   },
+  "dingtalk-connector": {
+    id: "dingtalk-connector",
+    capabilities: {
+      chatTypes: ["direct", "channel"],
+    },
+    outbound: { textChunkLimit: 4000 },
+    config: {
+      resolveAllowFrom: () => [],
+      formatAllowFrom: ({ allowFrom }) => allowFrom.map(String),
+    },
+  },
   slack: {
     id: "slack",
     capabilities: {
