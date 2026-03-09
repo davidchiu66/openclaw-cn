@@ -295,11 +295,13 @@ export function loadClawdbotPlugins(options: PluginLoadOptions = {}): PluginRegi
 
     // Skip source-only bundled plugins that haven't been built (no dist/).
     // These exist only as catalog entries for install prompts.
+    // Do NOT call seenIds.set here: a later candidate with the same id
+    // (e.g. the npm-installed version in ~/.openclaw/extensions/) must
+    // still be allowed to load.
     if (!fs.existsSync(candidate.source)) {
       record.status = "disabled";
       record.error = "source file not found (install plugin to enable)";
       registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
       continue;
     }
 

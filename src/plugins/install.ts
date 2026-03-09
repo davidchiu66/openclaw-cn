@@ -420,6 +420,7 @@ export async function installPluginFromNpmSpec(params: {
     timeoutMs: Math.max(timeoutMs, 300_000),
     cwd: tmpDir,
     env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: "0" },
+    preferInheritStdin: false,
   });
   if (res.code !== 0) {
     return {

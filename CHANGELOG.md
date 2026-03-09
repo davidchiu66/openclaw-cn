@@ -4,6 +4,11 @@ Docs: https://clawd.org.cn/
 
 ## 0.1.8
 
+### bug修复（0.1.8 热补丁）
+
+- **Windows 插件安装崩溃修复**：修复在 Windows 环境下运行配置向导安装飞书/钉钉等插件时，`npm pack` 子进程因 `stdin: inherit` + 非 TTY 环境触发 `spawn EINVAL` 错误导致向导直接退出的问题。根本原因：`runCommandWithTimeout` 默认将 stdin 设为 `inherit`，而 Windows 不允许对非 TTY 句柄使用 `inherit`。修复方案：给 `CommandOptions` 新增 `preferInheritStdin` 选项，`installPluginFromNpmSpec` 传入 `false` 强制使用 `pipe`
+- **SIGUSR1 重启后插件不重载修复**：修复 `openclaw-cn gateway restart` 或发送 SIGUSR1 后，飞书等 npm 安装的插件无法重新加载导致连接断开的问题。根本原因：`loader.ts` 新增的"source 文件不存在时跳过捆绑壳"逻辑错误地调用了 `seenIds.set(pluginId, "bundled")`，导致后续同 id 的 npm 安装版本被判定为重复而跳过。修复方案：source 不存在时不占用 `seenIds`，让 npm 安装版本正常加载
+
 ### 飞书插件 npm 独立分发
 
 - **飞书插件切换为 npm 独立分发**：飞书渠道插件（`@openclaw-cn/feishu`）不再随主包捆绑，改为通过 npm 独立下载安装。配置向导中仅保留「npm 下载」和「跳过」两个选项，移除了「使用本地插件路径」选项，简化安装流程

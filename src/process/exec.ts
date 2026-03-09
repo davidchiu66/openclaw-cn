@@ -89,6 +89,10 @@ export type CommandOptions = {
   input?: string;
   env?: NodeJS.ProcessEnv;
   windowsVerbatimArguments?: boolean;
+  /** When false, stdin is always piped (not inherited). Defaults to true.
+   * Set to false for non-interactive subprocesses (e.g. npm pack in onboarding)
+   * to avoid EINVAL on Windows when stdin is not a real TTY. */
+  preferInheritStdin?: boolean;
 };
 
 export async function runCommandWithTimeout(
@@ -128,7 +132,10 @@ export async function runCommandWithTimeout(
     }
   }
 
-  const stdio = resolveCommandStdio({ hasInput, preferInherit: true });
+  const stdio = resolveCommandStdio({
+    hasInput,
+    preferInherit: options.preferInheritStdin !== false,
+  });
   const resolvedCommand = resolveCommand(argv[0] ?? "");
   const child = spawn(resolvedCommand, argv.slice(1), {
     stdio,
