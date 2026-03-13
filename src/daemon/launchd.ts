@@ -426,9 +426,32 @@ export async function installLaunchAgent({
   await execLaunchctl(["enable", `${domain}/${label}`]);
   const boot = await execLaunchctl(["bootstrap", domain, plistPath]);
   if (boot.code !== 0) {
-    throw new Error(`launchctl bootstrap failed: ${boot.stderr || boot.stdout}`.trim());
+    const rawMsg = (boot.stderr || boot.stdout).trim();
+    // launchd error 125 ("Domain does not support specified action") means the gui/<uid> domain
+    // does not exist — the user has no active macOS GUI login session (e.g. SSH-only connection).
+    // Fall back to the legacy `launchctl load -w` which works from non-GUI contexts.
+    // The plist in ~/Library/LaunchAgents/ guarantees the service auto-starts on next GUI login.
+    if (/\b125\b/.test(rawMsg)) {
+      stdout.write(
+        `\nWarning: no active GUI session for this user (launchd 125); falling back to launchctl load.\n`,
+      );
+      stdout.write(`The service will auto-start on the user's next macOS login.\n`);
+      const load = await execLaunchctl(["load", "-w", plistPath]);
+      if (load.code !== 0) {
+        throw new Error(
+          `launchctl bootstrap failed (no GUI session): ${rawMsg}\n` +
+            `Fallback launchctl load also failed: ${(load.stderr || load.stdout).trim()}\n` +
+            `The plist has been written to ${plistPath} and will activate on next GUI login.\n` +
+            `To start now: log into the macOS GUI as this user, then run: openclaw gateway install`,
+        );
+      }
+      // load succeeded — skip kickstart (service is already running via load)
+    } else {
+      throw new Error(`launchctl bootstrap failed: ${rawMsg}`);
+    }
+  } else {
+    await execLaunchctl(["kickstart", "-k", `${domain}/${label}`]);
   }
-  await execLaunchctl(["kickstart", "-k", `${domain}/${label}`]);
 
   // Ensure we don't end up writing to a clack spinner line (wizards show progress without a newline).
   stdout.write("\n");
