@@ -28,7 +28,7 @@
 
 - **🇨🇳 完整中文化** — CLI、Web 控制界面、配置向导全部汉化
 - **🏠 本地优先** — 数据存储在你自己的设备上，隐私可控
-- **📱 多渠道支持** — WhatsApp、Telegram、Slack、Discord、Signal、iMessage、飞书、钉钉、企业微信、QQ
+- **📱 多渠道支持** — WhatsApp、Telegram、Slack、Discord、Signal、iMessage、飞书、钉钉、企业微信、QQ、微信
 - **🎙️ 语音交互** — macOS/iOS/Android 语音唤醒和对话
 - **🖼️ Canvas 画布** — 智能体驱动的可视化工作区
 - **🔧 技能扩展** — 内置技能 + 自定义工作区技能
@@ -94,6 +94,7 @@ pnpm openclaw-cn onboard --install-daemon
 - [钉钉渠道](https://clawd.org.cn/channels/dingtalk-connector.html) — 官方插件，配置向导一键安装
 - [企业微信渠道](https://clawd.org.cn/channels/wecom.html) — 官方插件，配置向导一键安装
 - [QQ 渠道](https://clawd.org.cn/channels/qqbot.html) — 社区插件 `@sliverp/qqbot`（基于 OneBot/NapCat），配置向导一键安装
+- [微信渠道](https://clawd.org.cn/channels/openclaw-weixin.html) — 官方插件 `@tencent-weixin/openclaw-weixin`，配置向导一键安装
 - [QQ (OneBot) 社区插件 ↗](https://github.com/Daiyimo/openclaw-napcat) - 由 @Daiyimo 贡献，基于 NapCat/Lagrange（非官方内置）
 - [技能开发](https://clawd.org.cn/tools/skills.html)
 
@@ -133,7 +134,7 @@ pnpm openclaw-cn onboard --install-daemon
 - [x] 钉钉渠道适配（官方插件，配置向导一键安装）
 - [x] 企业微信渠道适配（官方插件，配置向导一键安装）
 - [x] QQ 渠道适配（社区插件 `@sliverp/qqbot`，配置向导一键安装）
-- [ ] 微信渠道适配
+- [x] 微信渠道适配（官方插件 `@tencent-weixin/openclaw-weixin`，配置向导一键安装）
 
 ## 📄 许可证
 
